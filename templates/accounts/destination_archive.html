@@ -1,0 +1,42 @@
+﻿{% extends "base.html" %}
+{% block title %}{% if destination.archived %}Restore{% else %}Archive{% endif %} Destination &bull; MallWay Admin{% endblock %}
+{% block extra_css %}
+<style>
+.confirm-container{max-width:540px;margin:60px auto}
+.confirm-card{background:#fff;border-radius:var(--radius-lg);padding:40px 48px;box-shadow:var(--shadow-md);text-align:center;border:1px solid #e2e8f0}
+.action-icon{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:2rem;background:#f8fafc}
+.confirm-card h2{font-size:1.4rem;font-weight:700;color:var(--text-heading);margin-bottom:12px}
+.confirm-card p{color:var(--text-muted);font-size:.9rem;line-height:1.6;margin-bottom:8px}
+.dest-name-highlight{font-weight:700;color:var(--text-heading)}
+.info-box{border-radius:var(--radius-sm);padding:12px 16px;margin:20px 0;font-size:.85rem;background:#fffbeb;border:1px solid #fde68a;color:#92400e}
+.confirm-actions{display:flex;gap:12px;justify-content:center;margin-top:24px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .2s ease;font-family:inherit}
+.btn-confirm{background:#d97706;color:white}.btn-confirm:hover{background:#b45309}
+.btn-secondary{background:#f1f5f9;color:var(--text-heading);border:1px solid var(--border-soft)}.btn-secondary:hover{background:#e2e8f0}
+</style>
+{% endblock %}
+{% block content %}
+<div class="main-container">
+<div class="confirm-container">
+<div class="confirm-card">
+  <div class="action-icon">{% if destination.archived %}✅{% else %}📦{% endif %}</div>
+  <h2>{% if destination.archived %}Restore Destination?{% else %}Archive Destination?{% endif %}</h2>
+  <p>You are about to {% if destination.archived %}restore{% else %}archive{% endif %}:</p>
+  <p><span class="dest-name-highlight">{{ destination.name }}</span></p>
+  <p style="font-size:.8rem;color:var(--text-muted);">{{ destination.get_category_display }} &bull; {{ destination.floor }} &bull; {{ destination.location }}</p>
+  <div class="info-box">
+    {% if destination.archived %}✅ Restoring will make this destination visible to customers again.
+    {% else %}📦 Archiving will hide this from the customer directory. You can restore it at any time.{% endif %}
+  </div>
+  <div class="confirm-actions">
+    <a href="{% url 'admin_directory' %}" class="btn btn-secondary">Cancel</a>
+    <form method="post">{% csrf_token %}
+      <button type="submit" class="btn btn-confirm">
+        {% if destination.archived %}✅ Restore Destination{% else %}📦 Archive Destination{% endif %}
+      </button>
+    </form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

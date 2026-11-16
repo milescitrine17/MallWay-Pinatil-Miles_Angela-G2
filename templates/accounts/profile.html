@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile &bull; MallWay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-layout {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 28px;
+        align-items: start;
+    }
+
+    .profile-card {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+    }
+
+    .profile-sidebar-header {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+        padding: 38px 24px;
+        text-align: center;
+        color: white;
+        position: relative;
+    }
+
+    .profile-avatar-large {
+        width: 104px;
+        height: 104px;
+        border-radius: var(--radius-full);
+        border: 4px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        object-fit: cover;
+        background: #e2e8f0;
+        margin: 0 auto 14px;
+        display: block;
+    }
+
+    .profile-avatar-fallback-large {
+        width: 104px;
+        height: 104px;
+        border-radius: var(--radius-full);
+        border: 4px solid rgba(255, 255, 255, 0.95);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        background: linear-gradient(135deg, #3b82f6, #0d9488);
+        color: white;
+        font-size: 2.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 14px;
+    }
+
+    .profile-user-name {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 2px;
+    }
+
+    .profile-username-tag {
+        font-size: 0.85rem;
+        color: #94a3b8;
+    }
+
+    .profile-sidebar-body {
+        padding: 24px;
+    }
+
+    .profile-info-list {
+        list-style: none;
+    }
+
+    .profile-info-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--border-lighter);
+        font-size: 0.875rem;
+        color: var(--text-heading);
+    }
+
+    .profile-info-item:last-child {
+        border-bottom: none;
+    }
+
+    .info-icon {
+        color: #6366f1;
+        flex-shrink: 0;
+    }
+
+    .profile-main-card {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        padding: 34px 38px;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .card-header-flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid var(--border-lighter);
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .card-title {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+    }
+
+    .card-subtitle {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin-top: 3px;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        margin-bottom: 28px;
+    }
+
+    .detail-group {
+        background: #f8fafc;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 18px 20px;
+        transition: all 0.15s ease;
+    }
+
+    .detail-group:hover {
+        background: #ffffff;
+        border-color: #cbd5e1;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .detail-label {
+        font-size: 0.775rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        margin-bottom: 6px;
+    }
+
+    .detail-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-heading);
+        word-break: break-all;
+    }
+
+    .privacy-notice {
+        background-color: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        border-radius: var(--radius-md);
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        color: #065f46;
+        font-size: 0.875rem;
+        margin-top: 20px;
+    }
+
+    @media (max-width: 860px) {
+        .profile-layout {
+            grid-template-columns: 1fr;
+        }
+        .details-grid {
+            grid-template-columns: 1fr;
+        }
+        .profile-main-card {
+            padding: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="profile-layout">
+    <!-- Sidebar Card -->
+    <div class="profile-card">
+        <div class="profile-sidebar-header">
+            {% if profile.profile_photo %}
+                <img src="{{ profile.profile_photo.url }}" alt="{{ user.username }}" class="profile-avatar-large">
+            {% else %}
+                <div class="profile-avatar-fallback-large">
+                    {{ user.first_name|default:user.username|make_list|first|upper }}
+                </div>
+            {% endif %}
+
+            <h2 class="profile-user-name">{{ user.get_full_name|default:user.username }}</h2>
+            <div class="profile-username-tag">@{{ user.username }}</div>
+
+            <div style="margin-top: 14px;">
+                {% if profile.role == 'admin' %}
+                    <span class="role-pill role-admin">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"></path></svg>
+                        Mall Administrator
+                    </span>
+                {% else %}
+                    <span class="role-pill role-customer">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                        Customer
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="profile-sidebar-body">
+            <ul class="profile-info-list">
+                <li class="profile-info-item">
+                    <svg class="info-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                    <span>{{ user.email|default:"No email set" }}</span>
+                </li>
+                <li class="profile-info-item">
+                    <svg class="info-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                    <span>{{ profile.contact_number|default:"No contact number" }}</span>
+                </li>
+                <li class="profile-info-item">
+                    <svg class="info-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    <span>Joined {{ user.date_joined|date:"M d, Y" }}</span>
+                </li>
+            </ul>
+
+            <div style="margin-top: 22px;">
+                <a href="{% url 'profile_edit' %}" class="btn btn-primary" style="width: 100%;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                    Edit Profile Details
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Profile Card -->
+    <div class="profile-main-card">
+        <div class="card-header-flex">
+            <div>
+                <h1 class="card-title">Account Information</h1>
+                <p class="card-subtitle">Personal information and verified credentials</p>
+            </div>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                Return to Dashboard
+            </a>
+        </div>
+
+        <div class="details-grid">
+            <div class="detail-group">
+                <div class="detail-label">First Name</div>
+                <div class="detail-value">{{ user.first_name|default:"Not specified" }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Last Name</div>
+                <div class="detail-value">{{ user.last_name|default:"Not specified" }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Username</div>
+                <div class="detail-value">{{ user.username }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Email Address</div>
+                <div class="detail-value">{{ user.email }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Contact Number</div>
+                <div class="detail-value">{{ profile.contact_number|default:"Not provided" }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Current Role</div>
+                <div class="detail-value">{{ profile.get_role_display }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Date Joined</div>
+                <div class="detail-value">{{ user.date_joined|date:"F j, Y, g:i a" }}</div>
+            </div>
+
+            <div class="detail-group">
+                <div class="detail-label">Last Login</div>
+                <div class="detail-value">{{ user.last_login|date:"F j, Y, g:i a"|default:"First session active" }}</div>
+            </div>
+        </div>
+
+        <div class="privacy-notice">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            <div>
+                <strong>Private Profile:</strong> Only you can view and edit your profile details. Cross-user access is restricted.
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

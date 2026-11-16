@@ -1,0 +1,101 @@
+﻿{% extends "base.html" %}
+{% block title %}{{ form_title }} &bull; MallWay Admin{% endblock %}
+{% block extra_css %}
+<style>
+.form-container{max-width:760px;margin:0 auto}
+.breadcrumb{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--text-muted);margin-bottom:24px}
+.breadcrumb a{color:#3b82f6;text-decoration:none}.breadcrumb a:hover{text-decoration:underline}
+.form-card{background:#fff;border:1px solid var(--border-lighter);border-radius:var(--radius-lg);padding:40px 48px;box-shadow:var(--shadow-md)}
+.form-card-header{margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--border-lighter)}
+.form-card-header h1{font-size:1.5rem;font-weight:700;color:var(--text-heading);margin-bottom:4px;letter-spacing:-0.02em}
+.form-card-header p{color:var(--text-muted);font-size:.9rem}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full-width{grid-column:1/-1}
+.form-label{font-size:.85rem;font-weight:600;color:var(--text-heading)}
+.form-label .required{color:#e11d48;margin-left:2px}
+.form-input,select.form-input,textarea.form-input{width:100%;padding:10px 14px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);font-size:.875rem;font-family:inherit;transition:border-color .2s,box-shadow .2s;outline:none;background:#fff;color:var(--text-heading)}
+.form-input:focus,select.form-input:focus,textarea.form-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1)}
+.form-hint{font-size:.775rem;color:var(--text-muted);margin-top:2px}
+.form-errors{list-style:none;margin-top:4px}
+.form-errors li{font-size:.8rem;color:#e11d48}
+.checkbox-row{display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fefce8;border:1px solid #fef08a;border-radius:var(--radius-sm)}
+.checkbox-row input[type="checkbox"]{width:16px;height:16px;accent-color:#f59e0b;cursor:pointer}
+.checkbox-row label{font-size:.875rem;font-weight:600;color:#92400e;cursor:pointer}
+.current-image{margin-top:8px}
+.current-image img{max-width:180px;max-height:120px;border-radius:var(--radius-sm);border:1px solid var(--border-lighter);object-fit:cover}
+.form-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:32px;padding-top:24px;border-top:1px solid var(--border-lighter)}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .2s ease;font-family:inherit}
+.btn-primary{background:#3b82f6;color:white}.btn-primary:hover{background:#2563eb;box-shadow:0 4px 12px rgba(59,130,246,.3)}
+.btn-secondary{background:#f1f5f9;color:var(--text-heading);border:1px solid var(--border-soft)}.btn-secondary:hover{background:#e2e8f0}
+@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-card{padding:24px 20px}}
+</style>
+{% endblock %}
+{% block content %}
+<div class="main-container">
+<div class="breadcrumb">
+  <a href="{% url 'admin_dashboard' %}">Admin Dashboard</a><span>›</span>
+  <a href="{% url 'admin_directory' %}">Directory Management</a><span>›</span>
+  <span>{{ form_title }}</span>
+</div>
+<div class="form-container">
+<div class="form-card">
+<div class="form-card-header">
+  <h1>{{ form_title }}</h1>
+  <p>{% if is_edit %}Update the details of this mall destination.{% else %}Add a new store, restaurant, or facility to the mall directory.{% endif %}</p>
+</div>
+<form method="post" enctype="multipart/form-data">
+{% csrf_token %}
+<div class="form-grid">
+  <div class="form-group full-width">
+    <label class="form-label" for="{{ form.name.id_for_label }}">Destination Name <span class="required">*</span></label>
+    {{ form.name }}
+    {% if form.name.errors %}<ul class="form-errors">{% for e in form.name.errors %}<li>⚠ {{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="{{ form.category.id_for_label }}">Category <span class="required">*</span></label>
+    {{ form.category }}
+    {% if form.category.errors %}<ul class="form-errors">{% for e in form.category.errors %}<li>⚠ {{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <div class="form-group">
+    <label class="form-label" for="{{ form.floor.id_for_label }}">Floor <span class="required">*</span></label>
+    {{ form.floor }}
+    {% if form.floor.errors %}<ul class="form-errors">{% for e in form.floor.errors %}<li>⚠ {{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <div class="form-group full-width">
+    <label class="form-label" for="{{ form.location.id_for_label }}">Location / Unit <span class="required">*</span></label>
+    {{ form.location }}
+    {% if form.location.errors %}<ul class="form-errors">{% for e in form.location.errors %}<li>⚠ {{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <div class="form-group full-width">
+    <label class="form-label" for="{{ form.operating_hours.id_for_label }}">Operating Hours</label>
+    {{ form.operating_hours }}
+  </div>
+  <div class="form-group full-width">
+    <label class="form-label" for="{{ form.description.id_for_label }}">Description</label>
+    {{ form.description }}
+  </div>
+  <div class="form-group full-width">
+    <label class="form-label">Destination Image</label>
+    {% if is_edit and destination.image %}<div class="current-image"><p class="form-hint">Current image:</p><img src="{{ destination.image.url }}" alt="{{ destination.name }}"></div><p class="form-hint" style="margin-top:8px;">Upload a new image to replace:</p>{% endif %}
+    {{ form.image }}
+    <p class="form-hint">Optional. JPG, PNG, or GIF.</p>
+    {% if form.image.errors %}<ul class="form-errors">{% for e in form.image.errors %}<li>⚠ {{ e }}</li>{% endfor %}</ul>{% endif %}
+  </div>
+  <div class="form-group full-width">
+    <div class="checkbox-row">
+      {{ form.featured }}
+      <label for="{{ form.featured.id_for_label }}">⭐ Mark as Featured — highlights this destination on the customer directory</label>
+    </div>
+  </div>
+</div>
+{% if form.non_field_errors %}<div style="margin-top:16px;padding:12px 16px;background:var(--error-bg);border:1px solid var(--error-border);border-radius:var(--radius-sm);color:var(--error-text);font-size:.875rem;">{% for error in form.non_field_errors %}<p>⚠ {{ error }}</p>{% endfor %}</div>{% endif %}
+<div class="form-actions">
+  <a href="{% url 'admin_directory' %}" class="btn btn-secondary">Cancel</a>
+  <button type="submit" class="btn btn-primary">✓ {{ form_action }}</button>
+</div>
+</form>
+</div>
+</div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-from django.db import models
+﻿from django.db import models
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -45,3 +45,55 @@ def create_or_save_user_profile(sender, instance, created, **kwargs):
     else:
         if hasattr(instance, 'profile'):
             instance.profile.save()
+
+
+class Destination(models.Model):
+    CATEGORY_CHOICES = (
+        ('store', 'Store'),
+        ('restaurant', 'Restaurant'),
+        ('facility', 'Facility'),
+        ('entrance', 'Entrance'),
+        ('other', 'Other'),
+    )
+
+    name = models.CharField(max_length=150)
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES
+    )
+    description = models.TextField(blank=True)
+    floor = models.CharField(max_length=50)
+    location = models.CharField(max_length=150)
+    operating_hours = models.CharField(max_length=100, blank=True)
+    featured = models.BooleanField(default=False)
+    archived = models.BooleanField(default=False)
+    image = models.ImageField(
+        upload_to='destination_images/',
+        blank=True,
+        null=True
+    )
+    created_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='destinations'
+    )
+    created_at = models.DateTimeField(auto_now_add=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+    def get_category_display_icon(self):
+        icons = {
+            'store': '🛍️',
+            'restaurant': '🍽️',
+            'facility': '🏢',
+            'entrance': '🚪',
+            'other': '📍',
+        }
+        return icons.get(self.category, '📍')

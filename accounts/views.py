@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+﻿from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
@@ -6,8 +6,8 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
 from django.utils.http import url_has_allowed_host_and_scheme
 
-from .models import Profile
-from .forms import RegistrationForm, ProfileUpdateForm
+from .models import Profile, Destination
+from .forms import RegistrationForm, ProfileUpdateForm, DestinationForm
 
 
 def get_user_profile(user):
@@ -55,10 +55,8 @@ def login_view(request):
         username_or_email = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
 
-        # Attempt authentication with username directly
         user = authenticate(request, username=username_or_email, password=password)
 
-        # If not authenticated, check if the input corresponds to a unique email
         if user is None and '@' in username_or_email:
             matched_user = User.objects.filter(email__iexact=username_or_email).first()
             if matched_user:
@@ -69,10 +67,9 @@ def login_view(request):
             profile = get_user_profile(user)
             messages.success(
                 request,
-                f"Welcome back, {user.first_name or user.username}! Logged in as {profile.get_role_display()}."
+                f"Welcome, {user.first_name or user.username}! Logged in as {profile.get_role_display()}."
             )
 
-            # Redirect safely to next parameter if present
             if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
                 return redirect(next_url)
 
@@ -124,19 +121,20 @@ def customer_dashboard(request):
         )
         return redirect('admin_dashboard')
 
-    # Mall content tailored for customers
+    featured = Destination.objects.filter(archived=False, featured=True)[:6]
+    total_active = Destination.objects.filter(archived=False).count()
+
     featured_stores = [
         {'name': 'Starlight Fashion Co.', 'category': 'Apparel & Accessories', 'floor': 'Level 2 - Unit 204', 'status': 'Open Now', 'rating': 4.8},
-        {'name': 'Bistro De Manila', 'category': 'Dining & Café', 'floor': 'Level 3 - Food Hall', 'status': 'Open Now', 'rating': 4.9},
-        {'name': 'CyberWave Tech Hub', 'category': 'Electronics & Gadgets', 'floor': 'Level 1 - Unit 112', 'status': 'Open Now', 'rating': 4.7},
-        {'name': 'CineMax Luxe Theaters', 'category': 'Entertainment & Cinema', 'floor': 'Level 4 - Sky Level', 'status': 'Now Showing', 'rating': 4.9},
-        {'name': 'The Green Oasis Spa', 'category': 'Wellness & Beauty', 'floor': 'Level 2 - Unit 218', 'status': 'Open Now', 'rating': 4.6},
-        {'name': 'Metro Gourmet Supermarket', 'category': 'Groceries & Daily Essentials', 'floor': 'Lower Ground - LG01', 'status': 'Open Now', 'rating': 4.8},
+        {'name': 'Bistro De Manila', 'category': 'Dining & Café', 'floor': 'Level 3 - Food Hall', 'status': 'Open Now', 'rating': 4.7},
+        {'name': 'CyberWave Tech Hub', 'category': 'Tech & Electronics', 'floor': 'Level 1 - Unit 112', 'status': 'Open Now', 'rating': 4.9},
+        {'name': 'CineMax Luxe Theaters', 'category': 'Entertainment & Cinema', 'floor': 'Level 4 - Sky Level', 'status': 'Open Now', 'rating': 4.6},
+        {'name': 'The Green Oasis Spa', 'category': 'Wellness & Care', 'floor': 'Level 2 - Unit 218', 'status': 'Open Now', 'rating': 4.8},
+        {'name': 'Apex Sports Gear', 'category': 'Sporting Goods', 'floor': 'Level 1 - Unit 105', 'status': 'Open Now', 'rating': 4.5},
     ]
 
     promotions = [
-        {'title': 'Summer Grand Opening Sale', 'discount': 'Up to 50% OFF', 'desc': 'Special discounts across over 35 retail partners this weekend.', 'badge': 'Hot Deal'},
-        {'title': 'Weekend Food Festival', 'discount': 'Free Drink with Any Meal', 'desc': 'Enjoy complimentary drinks at the Level 3 Dining Loft.', 'badge': 'Dining'},
+        {'title': 'Weekend Grand Food Carnival', 'discount': 'Free Drink with Any Meal', 'desc': 'Enjoy complimentary drinks at the Level 3 Dining Loft.', 'badge': 'Dining'},
         {'title': 'MallWay Rewards 2X Points', 'discount': 'Double Points', 'desc': 'Earn 2x loyalty points on all purchases made via registered stores.', 'badge': 'Loyalty'},
     ]
 
@@ -150,7 +148,9 @@ def customer_dashboard(request):
 
     context = {
         'profile': profile,
+        'featured': featured,
         'featured_stores': featured_stores,
+        'total_active': total_active,
         'promotions': promotions,
         'amenities': amenities,
     }
@@ -172,12 +172,16 @@ def admin_dashboard(request):
         )
         return redirect('customer_dashboard')
 
-    # Content tailored for administrators
+    total_destinations = Destination.objects.filter(archived=False).count()
+    featured_count = Destination.objects.filter(archived=False, featured=True).count()
+    archived_count = Destination.objects.filter(archived=True).count()
+    registered_users_count = User.objects.count()
+
     kpi_stats = {
-        'total_stores': 52,
-        'active_tenants': 48,
-        'occupancy_rate': '92.3%',
+        'total_stores': total_destinations or 52,
+        'occupancy_rate': f"{featured_count} Featured" if featured_count else '92.3%',
         'daily_visitors': '4,850',
+        'registered_accounts': registered_users_count,
     }
 
     tenants = [
@@ -195,10 +199,11 @@ def admin_dashboard(request):
         {'title': 'Air Conditioning Maintenance - Level 3 Food Loft', 'target': 'Food Loft Tenants', 'date': 'Nov 14, 2026', 'status': 'Completed'},
     ]
 
-    registered_users_count = User.objects.count()
-
     context = {
         'profile': profile,
+        'total_destinations': total_destinations,
+        'featured_count': featured_count,
+        'archived_count': archived_count,
         'kpi_stats': kpi_stats,
         'tenants': tenants,
         'recent_announcements': recent_announcements,
@@ -209,27 +214,17 @@ def admin_dashboard(request):
 
 @login_required(login_url='login')
 def profile_view(request):
-    """
-    User Profile View.
-    Logged-in users can view their own profile information.
-    Users can ONLY view their own profile.
-    """
+    """User Profile View. Logged-in users can view their own profile information."""
     profile = get_user_profile(request.user)
-
-    context = {
+    return render(request, 'accounts/profile.html', {
         'user': request.user,
         'profile': profile,
-    }
-    return render(request, 'accounts/profile.html', context)
+    })
 
 
 @login_required(login_url='login')
 def profile_edit_view(request):
-    """
-    User Profile Update View.
-    Logged-in users can update their own details (name, email, contact number, profile photo).
-    Users can ONLY edit their own profile.
-    """
+    """User Profile Update View. Logged-in users can update their own details."""
     profile = get_user_profile(request.user)
 
     if request.method == 'POST':
@@ -243,8 +238,272 @@ def profile_edit_view(request):
     else:
         form = ProfileUpdateForm(user=request.user)
 
-    context = {
+    return render(request, 'accounts/profile_edit.html', {
         'form': form,
         'profile': profile,
-    }
-    return render(request, 'accounts/profile_edit.html', context)
+    })
+
+
+# ─── Customer Directory Views ─────────────────────────────────────────────────
+
+@login_required(login_url='login')
+def directory_view(request):
+    """Customer: browse, search, and filter destinations."""
+    if request.user.profile.role != 'customer':
+        return redirect('dashboard')
+
+    destinations = Destination.objects.filter(archived=False)
+
+    search_query = request.GET.get('search', '').strip()
+    category = request.GET.get('category', '').strip()
+    floor_filter = request.GET.get('floor', '').strip()
+
+    if search_query:
+        destinations = destinations.filter(name__icontains=search_query)
+
+    if category:
+        destinations = destinations.filter(category=category)
+
+    if floor_filter:
+        destinations = destinations.filter(floor__icontains=floor_filter)
+
+    featured = Destination.objects.filter(archived=False, featured=True)
+    floors = Destination.objects.filter(archived=False).values_list('floor', flat=True).distinct().order_by('floor')
+
+    return render(
+        request,
+        'accounts/directory.html',
+        {
+            'destinations': destinations,
+            'search_query': search_query,
+            'selected_category': category,
+            'selected_floor': floor_filter,
+            'category_choices': Destination.CATEGORY_CHOICES,
+            'featured': featured,
+            'floors': floors,
+            'total_count': destinations.count(),
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_detail_view(request, destination_id):
+    """Customer: view full details of an active destination."""
+    if request.user.profile.role != 'customer':
+        return redirect('dashboard')
+
+    destination = get_object_or_404(Destination, id=destination_id, archived=False)
+
+    return render(
+        request,
+        'accounts/destination_detail.html',
+        {
+            'destination': destination,
+        }
+    )
+
+
+# ─── Admin Directory Management Views ────────────────────────────────────────
+
+@login_required(login_url='login')
+def admin_directory_view(request):
+    """Admin: list all destinations with search/filter and management actions."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    destinations = Destination.objects.all()
+
+    search_query = request.GET.get('search', '').strip()
+    category = request.GET.get('category', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+
+    if search_query:
+        destinations = destinations.filter(name__icontains=search_query)
+
+    if category:
+        destinations = destinations.filter(category=category)
+
+    if status_filter == 'active':
+        destinations = destinations.filter(archived=False)
+    elif status_filter == 'archived':
+        destinations = destinations.filter(archived=True)
+    elif status_filter == 'featured':
+        destinations = destinations.filter(featured=True, archived=False)
+
+    total = Destination.objects.count()
+    active_count = Destination.objects.filter(archived=False).count()
+    archived_count = Destination.objects.filter(archived=True).count()
+    featured_count = Destination.objects.filter(featured=True, archived=False).count()
+
+    return render(
+        request,
+        'accounts/admin_directory.html',
+        {
+            'destinations': destinations,
+            'search_query': search_query,
+            'selected_category': category,
+            'selected_status': status_filter,
+            'category_choices': Destination.CATEGORY_CHOICES,
+            'total': total,
+            'active_count': active_count,
+            'archived_count': archived_count,
+            'featured_count': featured_count,
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_create_view(request):
+    """Admin: create a new destination."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    if request.method == 'POST':
+        form = DestinationForm(request.POST, request.FILES)
+
+        if form.is_valid():
+            destination = form.save(commit=False)
+            destination.created_by = request.user
+            destination.save()
+
+            messages.success(
+                request,
+                f'Destination "{destination.name}" has been created successfully!'
+            )
+            return redirect('admin_directory')
+        else:
+            messages.error(request, "Please check the form and correct the errors below.")
+    else:
+        form = DestinationForm()
+
+    return render(
+        request,
+        'accounts/destination_form.html',
+        {
+            'form': form,
+            'form_title': 'Add New Destination',
+            'form_action': 'Create Destination',
+            'is_edit': False,
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_edit_view(request, destination_id):
+    """Admin: edit an existing destination."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    destination = get_object_or_404(Destination, id=destination_id)
+
+    if request.method == 'POST':
+        form = DestinationForm(request.POST, request.FILES, instance=destination)
+
+        if form.is_valid():
+            form.save()
+
+            messages.success(
+                request,
+                f'Destination "{destination.name}" has been updated successfully!'
+            )
+            return redirect('admin_directory')
+        else:
+            messages.error(request, "Please check the form and correct the errors below.")
+    else:
+        form = DestinationForm(instance=destination)
+
+    return render(
+        request,
+        'accounts/destination_form.html',
+        {
+            'form': form,
+            'destination': destination,
+            'form_title': f'Edit — {destination.name}',
+            'form_action': 'Save Changes',
+            'is_edit': True,
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_delete_view(request, destination_id):
+    """Admin: permanently delete a destination."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    destination = get_object_or_404(Destination, id=destination_id)
+
+    if request.method == 'POST':
+        name = destination.name
+        destination.delete()
+
+        messages.success(
+            request,
+            f'Destination "{name}" has been permanently deleted.'
+        )
+        return redirect('admin_directory')
+
+    return render(
+        request,
+        'accounts/destination_delete.html',
+        {
+            'destination': destination,
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_archive_view(request, destination_id):
+    """Admin: archive (soft-delete) or restore a destination."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    destination = get_object_or_404(Destination, id=destination_id)
+
+    if request.method == 'POST':
+        destination.archived = not destination.archived
+        destination.save()
+
+        if destination.archived:
+            messages.success(request, f'Destination "{destination.name}" has been archived.')
+        else:
+            messages.success(request, f'Destination "{destination.name}" has been restored to the active directory.')
+
+        return redirect('admin_directory')
+
+    return render(
+        request,
+        'accounts/destination_archive.html',
+        {
+            'destination': destination,
+        }
+    )
+
+
+@login_required(login_url='login')
+def destination_toggle_featured_view(request, destination_id):
+    """Admin: toggle featured status of a destination."""
+    if request.user.profile.role != 'admin':
+        messages.error(request, 'Access Denied: Mall Administrator privileges required.')
+        return redirect('dashboard')
+
+    destination = get_object_or_404(Destination, id=destination_id)
+
+    if request.method == 'POST':
+        destination.featured = not destination.featured
+        destination.save()
+
+        if destination.featured:
+            messages.success(request, f'Destination "{destination.name}" is now featured.')
+        else:
+            messages.success(request, f'Destination "{destination.name}" is no longer featured.')
+
+        return redirect('admin_directory')
+
+    return redirect('admin_directory')
+

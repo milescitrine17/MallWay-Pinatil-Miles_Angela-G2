@@ -1,7 +1,7 @@
-from django import forms
+﻿from django import forms
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
-from .models import Profile
+from .models import Profile, Destination
 
 
 class RegistrationForm(UserCreationForm):
@@ -218,3 +218,56 @@ class ProfileUpdateForm(forms.Form):
 
         profile.save()
         return self.user
+
+
+class DestinationForm(forms.ModelForm):
+    class Meta:
+        model = Destination
+        fields = [
+            'name',
+            'category',
+            'description',
+            'floor',
+            'location',
+            'operating_hours',
+            'featured',
+            'image',
+        ]
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. H&M, Jollibee, Information Desk'}),
+            'category': forms.Select(attrs={'class': 'form-input'}),
+            'description': forms.Textarea(attrs={'class': 'form-input', 'placeholder': 'Brief description...', 'rows': 3}),
+            'floor': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Ground Floor, Level 2'}),
+            'location': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Unit 203, East Wing'}),
+            'operating_hours': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. 10:00 AM – 9:00 PM daily'}),
+            'featured': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
+            'image': forms.FileInput(attrs={'class': 'form-file-input', 'accept': 'image/*'}),
+        }
+        labels = {
+            'name': 'Destination Name',
+            'category': 'Category',
+            'description': 'Description',
+            'floor': 'Floor',
+            'location': 'Location / Unit',
+            'operating_hours': 'Operating Hours',
+            'featured': 'Mark as Featured',
+            'image': 'Destination Image',
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name', '').strip()
+        if not name:
+            raise forms.ValidationError("Destination name is required.")
+        return name
+
+    def clean_floor(self):
+        floor = self.cleaned_data.get('floor', '').strip()
+        if not floor:
+            raise forms.ValidationError("Floor information is required.")
+        return floor
+
+    def clean_location(self):
+        location = self.cleaned_data.get('location', '').strip()
+        if not location:
+            raise forms.ValidationError("Location / Unit is required.")
+        return location

@@ -1,0 +1,35 @@
+﻿{% extends "base.html" %}
+{% block title %}Delete Destination &bull; MallWay Admin{% endblock %}
+{% block extra_css %}
+<style>
+.confirm-container{max-width:540px;margin:60px auto}
+.confirm-card{background:#fff;border:1px solid #fecdd3;border-radius:var(--radius-lg);padding:40px 48px;box-shadow:var(--shadow-md);text-align:center}
+.danger-icon{width:72px;height:72px;background:#fff1f2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:2rem}
+.confirm-card h2{font-size:1.4rem;font-weight:700;color:var(--text-heading);margin-bottom:12px}
+.confirm-card p{color:var(--text-muted);font-size:.9rem;line-height:1.6;margin-bottom:8px}
+.dest-name-highlight{font-weight:700;color:#e11d48}
+.warning-box{background:#fff1f2;border:1px solid #fecdd3;border-radius:var(--radius-sm);padding:12px 16px;margin:20px 0;font-size:.85rem;color:#9f1239}
+.confirm-actions{display:flex;gap:12px;justify-content:center;margin-top:24px}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:10px 22px;border-radius:var(--radius-sm);font-size:.875rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .2s ease;font-family:inherit}
+.btn-danger{background:#e11d48;color:white}.btn-danger:hover{background:#be123c;box-shadow:0 4px 12px rgba(225,29,72,.3)}
+.btn-secondary{background:#f1f5f9;color:var(--text-heading);border:1px solid var(--border-soft)}.btn-secondary:hover{background:#e2e8f0}
+</style>
+{% endblock %}
+{% block content %}
+<div class="main-container">
+<div class="confirm-container">
+<div class="confirm-card">
+  <div class="danger-icon">🗑️</div>
+  <h2>Delete Destination?</h2>
+  <p>You are about to permanently delete:</p>
+  <p><span class="dest-name-highlight">{{ destination.name }}</span></p>
+  <p style="font-size:.8rem;color:var(--text-muted);">{{ destination.get_category_display }} &bull; {{ destination.floor }} &bull; {{ destination.location }}</p>
+  <div class="warning-box">⚠️ This action is <strong>permanent and cannot be undone</strong>. Consider archiving it instead if you may need it later.</div>
+  <div class="confirm-actions">
+    <a href="{% url 'admin_directory' %}" class="btn btn-secondary">Cancel</a>
+    <form method="post">{% csrf_token %}<button type="submit" class="btn btn-danger">🗑️ Yes, Delete Permanently</button></form>
+  </div>
+</div>
+</div>
+</div>
+{% endblock %}

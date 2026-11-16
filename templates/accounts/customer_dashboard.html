@@ -1,0 +1,601 @@
+{% extends "base.html" %}
+
+{% block title %}Shopper Guide &bull; MallWay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Calming Hero Greeting */
+    .hero-banner {
+        background: linear-gradient(135deg, #f0f7ff 0%, #f0fdfa 50%, #fdf4ff 100%);
+        border: 1px solid #e0e7ff;
+        border-radius: var(--radius-lg);
+        padding: 36px 40px;
+        margin-bottom: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: var(--shadow-sm);
+        flex-wrap: wrap;
+        gap: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-banner::after {
+        content: '';
+        position: absolute;
+        top: -60px;
+        right: -60px;
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .hero-content h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .hero-content p {
+        color: var(--text-muted);
+        font-size: 0.975rem;
+        max-width: 540px;
+        line-height: 1.5;
+    }
+
+    .hero-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Soothing Stat Pills / Cards */
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 18px;
+        margin-bottom: 36px;
+    }
+
+    .soothing-stat-card {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 22px 24px;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .soothing-stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-bubble {
+        width: 50px;
+        height: 50px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .bubble-mint {
+        background: #ecfdf5;
+        color: #059669;
+    }
+
+    .bubble-sky {
+        background: #eff6ff;
+        color: #2563eb;
+    }
+
+    .bubble-rose {
+        background: #fff1f2;
+        color: #e11d48;
+    }
+
+    .bubble-lavender {
+        background: #f5f3ff;
+        color: #7c3aed;
+    }
+
+    .stat-label {
+        font-size: 0.825rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: 2px;
+    }
+
+    .stat-value {
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.01em;
+    }
+
+    /* Category Filter Navigation */
+    .filter-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 22px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .filter-chips {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .chip-btn {
+        background: #ffffff;
+        border: 1px solid var(--border-soft);
+        color: var(--text-muted);
+        padding: 7px 16px;
+        border-radius: var(--radius-full);
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .chip-btn:hover {
+        background: #f8fafc;
+        color: var(--text-heading);
+        border-color: #cbd5e1;
+    }
+
+    .chip-btn.active {
+        background: #eff6ff;
+        color: #2563eb;
+        border-color: #bfdbfe;
+        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
+    }
+
+    /* Interactive Store Directory Grid */
+    .stores-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+        gap: 22px;
+        margin-bottom: 40px;
+    }
+
+    .store-card {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .store-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        border-color: #cbd5e1;
+    }
+
+    .store-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 12px;
+    }
+
+    .store-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        display: inline-block;
+        margin-bottom: 8px;
+    }
+
+    .badge-fashion { background: #fdf2f8; color: #db2777; }
+    .badge-dining { background: #fff7ed; color: #ea580c; }
+    .badge-tech { background: #f0f9ff; color: #0284c7; }
+    .badge-entertainment { background: #eef2ff; color: #4f46e5; }
+    .badge-wellness { background: #ecfdf5; color: #059669; }
+    .badge-groceries { background: #f0fdf4; color: #166534; }
+
+    .store-name {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.01em;
+    }
+
+    .store-status-pill {
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: var(--radius-full);
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+    }
+
+    .store-footer {
+        margin-top: 18px;
+        padding-top: 14px;
+        border-top: 1px solid var(--border-lighter);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .store-location {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .store-rating {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        color: #d97706;
+        font-weight: 700;
+        background: #fffbeb;
+        padding: 2px 8px;
+        border-radius: var(--radius-full);
+    }
+
+    /* Calming Two-Column for Deals & Amenities */
+    .grid-lower-split {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 28px;
+    }
+
+    .section-header-calm {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+    .section-title-calm {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.01em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .promo-card-soft {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 20px 24px;
+        margin-bottom: 14px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .promo-card-soft:hover {
+        border-color: #cbd5e1;
+        box-shadow: var(--shadow-md);
+    }
+
+    .promo-badge-tag {
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 3px 9px;
+        border-radius: var(--radius-full);
+        background: #eff6ff;
+        color: #2563eb;
+        display: inline-block;
+        margin-bottom: 4px;
+    }
+
+    .promo-title-soft {
+        font-size: 0.975rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 2px;
+    }
+
+    .promo-desc-soft {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+    }
+
+    .promo-discount-badge {
+        font-size: 0.825rem;
+        font-weight: 700;
+        color: #047857;
+        background: #ecfdf5;
+        border: 1px solid #a7f3d0;
+        padding: 6px 14px;
+        border-radius: var(--radius-full);
+        white-space: nowrap;
+    }
+
+    .amenities-container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .amenity-card-soft {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 15px 18px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s ease;
+    }
+
+    .amenity-card-soft:hover {
+        background: #fafbfc;
+        border-color: #cbd5e1;
+    }
+
+    .amenity-icon-soft {
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        background: #f1f5f9;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .amenity-title-soft {
+        font-size: 0.9rem;
+        font-weight: 700;
+        color: var(--text-heading);
+    }
+
+    .amenity-desc-soft {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    @media (max-width: 900px) {
+        .grid-lower-split {
+            grid-template-columns: 1fr;
+        }
+        .hero-banner {
+            padding: 28px 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Calming Hero Greeting -->
+<div class="hero-banner">
+    <div class="hero-content">
+        <h1>
+            <span>Hello, {{ user.first_name|default:user.username }}</span>
+            <span style="font-size: 1.4rem;">👋</span>
+        </h1>
+        <p>Explore curated stores, browse weekend promotions, and navigate all levels in a relaxed shopping environment.</p>
+    </div>
+    <div class="hero-actions">
+        <a href="{% url 'profile' %}" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            My Profile
+        </a>
+        <a href="javascript:void(0)" onclick="document.getElementById('stores-section').scrollIntoView({behavior: 'smooth'});" class="btn btn-accent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
+            Browse Directory
+        </a>
+    </div>
+</div>
+
+<!-- Restful Stat Cards -->
+<div class="stats-row">
+    <div class="soothing-stat-card">
+        <div class="stat-bubble bubble-mint">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><path d="M12 18V6"></path></svg>
+        </div>
+        <div>
+            <div class="stat-label">Loyalty Rewards</div>
+            <div class="stat-value">450 Pts</div>
+        </div>
+    </div>
+
+    <div class="soothing-stat-card">
+        <div class="stat-bubble bubble-rose">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        </div>
+        <div>
+            <div class="stat-label">Saved Favorites</div>
+            <div class="stat-value">6 Stores</div>
+        </div>
+    </div>
+
+    <div class="soothing-stat-card">
+        <div class="stat-bubble bubble-sky">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+        </div>
+        <div>
+            <div class="stat-label">Active Flash Deals</div>
+            <div class="stat-value">3 Available</div>
+        </div>
+    </div>
+
+    <div class="soothing-stat-card">
+        <div class="stat-bubble bubble-lavender">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        </div>
+        <div>
+            <div class="stat-label">Shopper Tier</div>
+            <div class="stat-value">Silver Club</div>
+        </div>
+    </div>
+</div>
+
+<!-- Category Chips & Search Filter -->
+<div id="stores-section" class="filter-wrapper">
+    <div>
+        <h2 style="font-size: 1.25rem; font-weight: 700; color: var(--text-heading); margin-bottom: 4px;">Mall Directory</h2>
+        <p style="font-size: 0.875rem; color: var(--text-muted);">Real-time status and locations of establishments</p>
+    </div>
+
+    <div class="filter-chips">
+        <button class="chip-btn active" onclick="filterCategory('all', this)">All</button>
+        <button class="chip-btn" onclick="filterCategory('Fashion', this)">Fashion</button>
+        <button class="chip-btn" onclick="filterCategory('Dining', this)">Dining</button>
+        <button class="chip-btn" onclick="filterCategory('Electronics', this)">Tech</button>
+        <button class="chip-btn" onclick="filterCategory('Entertainment', this)">Entertainment</button>
+        <button class="chip-btn" onclick="filterCategory('Wellness', this)">Wellness</button>
+        <button class="chip-btn" onclick="filterCategory('Groceries', this)">Groceries</button>
+    </div>
+</div>
+
+<!-- Stores Grid -->
+<div class="stores-grid" id="stores-grid">
+    {% for store in featured_stores %}
+        <div class="store-card" data-category="{{ store.category }}">
+            <div>
+                <div class="store-header">
+                    <div>
+                        {% if 'Fashion' in store.category %}
+                            <span class="store-badge badge-fashion">Fashion & Style</span>
+                        {% elif 'Dining' in store.category %}
+                            <span class="store-badge badge-dining">Dining & Café</span>
+                        {% elif 'Electronics' in store.category %}
+                            <span class="store-badge badge-tech">Tech & Gadgets</span>
+                        {% elif 'Entertainment' in store.category %}
+                            <span class="store-badge badge-entertainment">Cinema & Fun</span>
+                        {% elif 'Wellness' in store.category %}
+                            <span class="store-badge badge-wellness">Wellness & Beauty</span>
+                        {% else %}
+                            <span class="store-badge badge-groceries">Groceries & Essentials</span>
+                        {% endif %}
+                        <div class="store-name">{{ store.name }}</div>
+                    </div>
+                    <span class="store-status-pill">{{ store.status }}</span>
+                </div>
+            </div>
+            <div class="store-footer">
+                <div class="store-location">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #6366f1;"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                    <span>{{ store.floor }}</span>
+                </div>
+                <div class="store-rating">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                    <span>{{ store.rating }}</span>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<!-- Soft Two-Column Deals & Amenities -->
+<div class="grid-lower-split">
+    <!-- Weekend Promotions -->
+    <div>
+        <div class="section-header-calm">
+            <h3 class="section-title-calm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #059669;"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                Current Mall Perks
+            </h3>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Updated today</span>
+        </div>
+
+        {% for promo in promotions %}
+            <div class="promo-card-soft">
+                <div>
+                    <span class="promo-badge-tag">{{ promo.badge }}</span>
+                    <div class="promo-title-soft">{{ promo.title }}</div>
+                    <div class="promo-desc-soft">{{ promo.desc }}</div>
+                </div>
+                <div class="promo-discount-badge">{{ promo.discount }}</div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Calm Amenities -->
+    <div>
+        <div class="section-header-calm">
+            <h3 class="section-title-calm">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #6366f1;"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                Guest Comfort & Services
+            </h3>
+        </div>
+
+        <div class="amenities-container">
+            {% for amenity in amenities %}
+                <div class="amenity-card-soft">
+                    <div class="amenity-icon-soft">
+                        {% if 'Wi-Fi' in amenity.name %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"></path><path d="M1.42 9a16 16 0 0 1 21.16 0"></path><path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path><line x1="12" y1="20" x2="12.01" y2="20"></line></svg>
+                        {% elif 'Parking' in amenity.name %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+                        {% elif 'Information' in amenity.name %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                        {% elif 'ATM' in amenity.name %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"></rect><line x1="2" y1="10" x2="22" y2="10"></line></svg>
+                        {% else %}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="amenity-title-soft">{{ amenity.name }}</div>
+                        <div class="amenity-desc-soft">{{ amenity.location }}</div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterCategory(cat, btn) {
+        document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const cards = document.querySelectorAll('.store-card');
+        cards.forEach(card => {
+            const cardCat = card.getAttribute('data-category');
+            if (cat === 'all' || cardCat.toLowerCase().includes(cat.toLowerCase())) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+</script>
+{% endblock %}

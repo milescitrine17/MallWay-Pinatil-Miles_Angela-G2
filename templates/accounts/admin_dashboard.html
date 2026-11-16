@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Operations &bull; MallWay{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Calming Admin Header */
+    .admin-hero {
+        background: linear-gradient(135deg, #f8faff 0%, #f0fdfa 60%, #fefce8 100%);
+        border: 1px solid #e2e8f0;
+        border-radius: var(--radius-lg);
+        padding: 34px 40px;
+        margin-bottom: 32px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: var(--shadow-sm);
+        flex-wrap: wrap;
+        gap: 24px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .admin-meta h1 {
+        font-size: 1.7rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .admin-pill-tag {
+        font-size: 0.725rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 4px 12px;
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        border-radius: var(--radius-full);
+    }
+
+    .admin-meta p {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        max-width: 580px;
+        line-height: 1.5;
+    }
+
+    .admin-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    /* Calming Metric Tiles */
+    .kpi-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+        gap: 18px;
+        margin-bottom: 36px;
+    }
+
+    .kpi-tile {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 22px 24px;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .kpi-tile:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .kpi-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .kpi-title {
+        font-size: 0.825rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-muted);
+    }
+
+    .kpi-icon-bubble {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .kpi-number {
+        font-size: 1.85rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+    }
+
+    .kpi-growth {
+        font-size: 0.8rem;
+        color: #059669;
+        margin-top: 6px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Spacious, Restful Directory Table */
+    .table-card {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        overflow: hidden;
+        margin-bottom: 36px;
+    }
+
+    .table-card-header {
+        padding: 22px 28px;
+        border-bottom: 1px solid var(--border-lighter);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 14px;
+    }
+
+    .table-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-heading);
+    }
+
+    .table-desc {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    .table-search-input {
+        padding: 8px 14px;
+        font-family: inherit;
+        font-size: 0.875rem;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-full);
+        background: #f8fafc;
+        width: 220px;
+        transition: all 0.2s ease;
+    }
+
+    .table-search-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .soothing-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+        font-size: 0.875rem;
+    }
+
+    .soothing-table th {
+        background-color: #f8fafc;
+        padding: 14px 24px;
+        font-weight: 700;
+        color: var(--text-muted);
+        border-bottom: 1px solid var(--border-lighter);
+        font-size: 0.775rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .soothing-table td {
+        padding: 16px 24px;
+        border-bottom: 1px solid var(--border-lighter);
+        color: var(--text-body);
+        vertical-align: middle;
+    }
+
+    .soothing-table tr:last-child td {
+        border-bottom: none;
+    }
+
+    .soothing-table tbody tr {
+        transition: background-color 0.15s ease;
+    }
+
+    .soothing-table tbody tr:hover {
+        background-color: #f8fafc;
+    }
+
+    .pill-active-calm {
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        background: #ecfdf5;
+        color: #047857;
+        border: 1px solid #a7f3d0;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .pill-pending-calm {
+        font-size: 0.725rem;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: var(--radius-full);
+        background: #fffbeb;
+        color: #b45309;
+        border: 1px solid #fde68a;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .action-btn-calm {
+        background: #ffffff;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-full);
+        padding: 5px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .action-btn-calm:hover {
+        background-color: #f1f5f9;
+        color: var(--text-heading);
+        border-color: #cbd5e1;
+    }
+
+    /* Bulletins & Shortcuts Split */
+    .grid-admin-lower {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 28px;
+    }
+
+    .bulletin-card-soft {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 20px 24px;
+        margin-bottom: 12px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .bulletin-card-soft:hover {
+        border-color: #cbd5e1;
+        box-shadow: var(--shadow-md);
+    }
+
+    .bulletin-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text-heading);
+        margin-bottom: 4px;
+    }
+
+    .bulletin-meta {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        display: flex;
+        gap: 14px;
+    }
+
+    .shortcut-menu {
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .shortcut-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 18px;
+        background: #f8fafc;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        color: var(--text-heading);
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+
+    .shortcut-btn:hover {
+        background: #ffffff;
+        border-color: #3b82f6;
+        box-shadow: var(--shadow-sm);
+        transform: translateX(2px);
+    }
+
+    @media (max-width: 900px) {
+        .grid-admin-lower {
+            grid-template-columns: 1fr;
+        }
+        .admin-hero {
+            padding: 28px 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Calming Admin Header -->
+<div class="admin-hero">
+    <div class="admin-meta">
+        <h1>
+            <span>Mall Operations Console</span>
+            <span class="admin-pill-tag">&bull; Operations Active</span>
+        </h1>
+        <p>Logged in as <strong>{{ user.get_full_name|default:user.username }}</strong>. Real-time overview of mall facilities, occupancy metrics, and commercial tenants.</p>
+    </div>
+    <div class="admin-actions">
+        <a href="{% url 'profile' %}" class="btn btn-secondary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            My Profile
+        </a>
+        <a href="javascript:void(0)" onclick="alert('Store onboarding dialog opened.');" class="btn btn-accent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            Add New Store
+        </a>
+    </div>
+</div>
+
+<!-- Restful Metric KPI Tiles -->
+<div class="kpi-row">
+    <div class="kpi-tile">
+        <div class="kpi-header">
+            <span class="kpi-title">Total Stores</span>
+            <div class="kpi-icon-bubble" style="background: #eff6ff; color: #2563eb;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            </div>
+        </div>
+        <div class="kpi-number">{{ kpi_stats.total_stores }}</div>
+        <div class="kpi-growth">&uarr; 3 leased this quarter</div>
+    </div>
+
+    <div class="kpi-tile">
+        <div class="kpi-header">
+            <span class="kpi-title">Occupancy Rate</span>
+            <div class="kpi-icon-bubble" style="background: #ecfdf5; color: #059669;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-number">{{ kpi_stats.occupancy_rate }}</div>
+        <div class="kpi-growth">&bull; 48 of 52 units active</div>
+    </div>
+
+    <div class="kpi-tile">
+        <div class="kpi-header">
+            <span class="kpi-title">Daily Footfall</span>
+            <div class="kpi-icon-bubble" style="background: #f5f3ff; color: #7c3aed;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            </div>
+        </div>
+        <div class="kpi-number">{{ kpi_stats.daily_visitors }}</div>
+        <div class="kpi-growth">&uarr; 14% higher footfall</div>
+    </div>
+
+    <div class="kpi-tile">
+        <div class="kpi-header">
+            <span class="kpi-title">Registered Accounts</span>
+            <div class="kpi-icon-bubble" style="background: #fffbeb; color: #d97706;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+        </div>
+        <div class="kpi-number">{{ registered_users_count }}</div>
+        <div class="kpi-growth" style="color: #64748b;">PostgreSQL Database</div>
+    </div>
+</div>
+
+<!-- Restful Tenant Directory Table -->
+<div class="table-card">
+    <div class="table-card-header">
+        <div>
+            <h2 class="table-title">Tenant & Store Directory</h2>
+            <p class="table-desc">Current mall tenants, designated units, and lease statuses</p>
+        </div>
+        <div>
+            <input type="text" id="tenant-filter" class="table-search-input" placeholder="🔍 Search tenants..." onkeyup="filterTenantTable();">
+        </div>
+    </div>
+
+    <div class="table-responsive">
+        <table class="soothing-table" id="tenant-table">
+            <thead>
+                <tr>
+                    <th>Unit Code</th>
+                    <th>Establishment</th>
+                    <th>Category</th>
+                    <th>Assigned Space</th>
+                    <th>Lease Status</th>
+                    <th>Contact</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in tenants %}
+                    <tr>
+                        <td><strong style="color: #6366f1;">{{ t.id }}</strong></td>
+                        <td style="font-weight: 700; color: var(--text-heading);">{{ t.name }}</td>
+                        <td>{{ t.category }}</td>
+                        <td>{{ t.unit }}</td>
+                        <td>
+                            {% if t.lease_status == 'Active' %}
+                                <span class="pill-active-calm">&bull; Active</span>
+                            {% else %}
+                                <span class="pill-pending-calm">&bull; {{ t.lease_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.825rem;">{{ t.contact }}</td>
+                        <td style="text-align: right;">
+                            <button class="action-btn-calm" onclick="alert('Reviewing record for {{ t.name }}');">Details</button>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Bulletins & Shortcuts -->
+<div class="grid-admin-lower">
+    <!-- Broadcast Notices -->
+    <div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px;">
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-heading);">Broadcast Bulletins</h3>
+            <button class="btn btn-secondary" style="padding: 6px 14px; font-size: 0.8rem;" onclick="alert('Bulletin composer opened.');">
+                + New Bulletin
+            </button>
+        </div>
+
+        {% for a in recent_announcements %}
+            <div class="bulletin-card-soft">
+                <div>
+                    <div class="bulletin-title">{{ a.title }}</div>
+                    <div class="bulletin-meta">
+                        <span>Target: <strong>{{ a.target }}</strong></span>
+                        <span>&bull; {{ a.date }}</span>
+                    </div>
+                </div>
+                <span class="pill-active-calm">{{ a.status }}</span>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Administrative Shortcuts -->
+    <div>
+        <div style="margin-bottom: 18px;">
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--text-heading);">Quick Tools</h3>
+        </div>
+
+        <div class="shortcut-menu">
+            <a href="javascript:void(0)" onclick="alert('Floor map visualizer is ready.');" class="shortcut-btn">
+                <span>Configure Floor Maps</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </a>
+            <a href="javascript:void(0)" onclick="alert('Tenant audit report exported.');" class="shortcut-btn">
+                <span>Export Audit Report</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </a>
+            <a href="{% url 'profile' %}" class="shortcut-btn">
+                <span>Manage Administrator Credentials</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function filterTenantTable() {
+        const query = document.getElementById('tenant-filter').value.toLowerCase();
+        const rows = document.querySelectorAll('#tenant-table tbody tr');
+        rows.forEach(row => {
+            const text = row.innerText.toLowerCase();
+            row.style.display = text.includes(query) ? '' : 'none';
+        });
+    }
+</script>
+{% endblock %}

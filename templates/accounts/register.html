@@ -1,0 +1,285 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account &bull; MallWay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-page {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 230px);
+        padding: 24px 0;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 580px;
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        padding: 42px 40px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .auth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.775rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #2563eb;
+        background: #eff6ff;
+        padding: 4px 12px;
+        border-radius: var(--radius-full);
+        margin-bottom: 12px;
+    }
+
+    .auth-title {
+        font-size: 1.65rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.45;
+    }
+
+    .grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+    }
+
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-heading);
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 12px 16px;
+        font-family: inherit;
+        font-size: 0.925rem;
+        color: var(--text-heading);
+        background-color: #ffffff;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+    }
+
+    .form-input:focus, .form-select:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .form-input.has-error {
+        border-color: #f87171;
+        background-color: #fffaf0;
+    }
+
+    .field-error {
+        font-size: 0.8rem;
+        color: var(--error-text);
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 600;
+    }
+
+    .field-help {
+        font-size: 0.775rem;
+        color: var(--text-muted);
+        margin-top: 5px;
+        line-height: 1.4;
+    }
+
+    .non-field-errors {
+        background-color: var(--error-bg);
+        border: 1px solid var(--error-border);
+        color: var(--error-text);
+        border-radius: var(--radius-sm);
+        padding: 12px 16px;
+        margin-bottom: 20px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .role-selection-box {
+        background: #f8fafc;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 16px;
+        margin-top: 4px;
+    }
+
+    .auth-btn {
+        width: 100%;
+        padding: 13px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-top: 10px;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-lighter);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .auth-footer a {
+        color: #2563eb;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 600px) {
+        .grid-2 {
+            grid-template-columns: 1fr;
+            gap: 0;
+        }
+        .auth-card {
+            padding: 28px 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Registration
+            </div>
+            <h1 class="auth-title">Create your Account</h1>
+            <p class="auth-subtitle">Join MallWay to discover stores, navigate the mall, or manage tenant operations.</p>
+        </div>
+
+        {% if form.non_field_errors %}
+            <div class="non-field-errors">
+                {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'register' %}" novalidate>
+            {% csrf_token %}
+
+            <div class="grid-2">
+                <div class="form-group">
+                    <label for="id_first_name" class="form-label">First Name *</label>
+                    <input type="text" name="first_name" id="id_first_name" class="form-input {% if form.first_name.errors %}has-error{% endif %}" value="{{ form.first_name.value|default:'' }}" placeholder="e.g. Maria" required>
+                    {% for error in form.first_name.errors %}
+                        <div class="field-error">&bull; {{ error }}</div>
+                    {% endfor %}
+                </div>
+
+                <div class="form-group">
+                    <label for="id_last_name" class="form-label">Last Name *</label>
+                    <input type="text" name="last_name" id="id_last_name" class="form-input {% if form.last_name.errors %}has-error{% endif %}" value="{{ form.last_name.value|default:'' }}" placeholder="e.g. Santos" required>
+                    {% for error in form.last_name.errors %}
+                        <div class="field-error">&bull; {{ error }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="id_username" class="form-label">Username *</label>
+                <input type="text" name="username" id="id_username" class="form-input {% if form.username.errors %}has-error{% endif %}" value="{{ form.username.value|default:'' }}" placeholder="Choose a unique username" required autocomplete="username">
+                <div class="field-help">150 characters or fewer. Letters, digits and @/./+/-/_ only.</div>
+                {% for error in form.username.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_email" class="form-label">Email Address *</label>
+                <input type="email" name="email" id="id_email" class="form-input {% if form.email.errors %}has-error{% endif %}" value="{{ form.email.value|default:'' }}" placeholder="maria.santos@example.com" required autocomplete="email">
+                <div class="field-help">Must be a valid and unique email address.</div>
+                {% for error in form.email.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_contact_number" class="form-label">Contact Number *</label>
+                <input type="text" name="contact_number" id="id_contact_number" class="form-input {% if form.contact_number.errors %}has-error{% endif %}" value="{{ form.contact_number.value|default:'' }}" placeholder="+63 912 345 6789" required autocomplete="tel">
+                {% for error in form.contact_number.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_role" class="form-label">Account Role *</label>
+                <div class="role-selection-box">
+                    <select name="role" id="id_role" class="form-select">
+                        <option value="customer" {% if form.role.value == 'customer' or not form.role.value %}selected{% endif %}>Customer (Mall Shopper & Visitor)</option>
+                        <option value="admin" {% if form.role.value == 'admin' %}selected{% endif %}>Mall Administrator (Operations & Facility Manager)</option>
+                    </select>
+                    <div class="field-help">Select the role you wish to test. Each role routes to its designated dashboard.</div>
+                </div>
+                {% for error in form.role.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_password1" class="form-label">Password *</label>
+                <input type="password" name="password1" id="id_password1" class="form-input {% if form.password1.errors %}has-error{% endif %}" placeholder="Enter a secure password" required autocomplete="new-password">
+                <div class="field-help">At least 8 characters. Passwords are securely hashed.</div>
+                {% for error in form.password1.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <div class="form-group">
+                <label for="id_password2" class="form-label">Confirm Password *</label>
+                <input type="password" name="password2" id="id_password2" class="form-input {% if form.password2.errors %}has-error{% endif %}" placeholder="Re-enter password to confirm" required autocomplete="new-password">
+                {% for error in form.password2.errors %}
+                    <div class="field-error">&bull; {{ error }}</div>
+                {% endfor %}
+            </div>
+
+            <button type="submit" class="btn btn-accent auth-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                Complete Registration
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account?
+            <a href="{% url 'login' %}">Log In</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

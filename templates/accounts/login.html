@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Log In &bull; MallWay{% endblock %}
+
+{% block extra_css %}
+<style>
+    .auth-page {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 230px);
+        padding: 20px 0;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 440px;
+        background: #ffffff;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-lg);
+        padding: 42px 38px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .auth-header {
+        text-align: center;
+        margin-bottom: 28px;
+    }
+
+    .auth-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.775rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #2563eb;
+        background: #eff6ff;
+        padding: 4px 12px;
+        border-radius: var(--radius-full);
+        margin-bottom: 12px;
+    }
+
+    .auth-title {
+        font-size: 1.65rem;
+        font-weight: 700;
+        letter-spacing: -0.025em;
+        color: var(--text-heading);
+        margin-bottom: 6px;
+    }
+
+    .auth-subtitle {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        line-height: 1.45;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 7px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-heading);
+    }
+
+    .form-input {
+        width: 100%;
+        padding: 12px 16px;
+        font-family: inherit;
+        font-size: 0.925rem;
+        color: var(--text-heading);
+        background-color: #ffffff;
+        border: 1px solid var(--border-soft);
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease;
+    }
+
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    }
+
+    .auth-btn {
+        width: 100%;
+        padding: 13px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-top: 8px;
+    }
+
+    .auth-footer {
+        text-align: center;
+        margin-top: 24px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border-lighter);
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .auth-footer a {
+        color: #2563eb;
+        font-weight: 700;
+        text-decoration: none;
+    }
+
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+
+    .auth-hint {
+        background-color: #f8fafc;
+        border: 1px solid var(--border-lighter);
+        border-radius: var(--radius-md);
+        padding: 14px 16px;
+        margin-top: 22px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        line-height: 1.45;
+    }
+
+    .auth-hint strong {
+        color: var(--text-heading);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-badge">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                Secure Access
+            </div>
+            <h1 class="auth-title">Welcome to MallWay</h1>
+            <p class="auth-subtitle">Log in using your username or registered email address</p>
+        </div>
+
+        <form method="POST" action="{% url 'login' %}{% if next %}?next={{ next }}{% endif %}" novalidate>
+            {% csrf_token %}
+
+            {% if next %}
+                <input type="hidden" name="next" value="{{ next }}">
+            {% endif %}
+
+            <div class="form-group">
+                <label for="id_username" class="form-label">Username or Email</label>
+                <input type="text" name="username" id="id_username" class="form-input" placeholder="e.g. your_username or email@domain.com" required autofocus autocomplete="username">
+            </div>
+
+            <div class="form-group">
+                <label for="id_password" class="form-label">Password</label>
+                <input type="password" name="password" id="id_password" class="form-input" placeholder="Enter your password" required autocomplete="current-password">
+            </div>
+
+            <button type="submit" class="btn btn-accent auth-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
+                Log In
+            </button>
+        </form>
+
+        <div class="auth-hint">
+            <strong>Role Guidance:</strong> Administrators are seamlessly forwarded to the Operations Console, while Customers access the Shopper Guide.
+        </div>
+
+        <div class="auth-footer">
+            Don't have an account yet?
+            <a href="{% url 'register' %}">Create an account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

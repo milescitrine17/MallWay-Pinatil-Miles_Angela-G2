@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Shopper Guide &bull; MallWay{% endblock %}
 
@@ -405,7 +405,7 @@
     <div class="hero-content">
         <h1>
             <span class="badge-role" style="font-size: 0.8rem; font-weight: 700; color: #2563eb; background: #eff6ff; padding: 3px 10px; border-radius: 9999px; margin-bottom: 8px; display: inline-block;">Shopper Dashboard</span><br><span>Hello, {{ user.first_name|default:user.username }}</span>
-            <span style="font-size: 1.4rem;">ðŸ‘‹</span>
+            <span style="font-size: 1.4rem;">👋</span>
         </h1>
         <p>Explore curated stores, browse weekend promotions, and navigate all levels in a relaxed shopping environment.</p>
     </div>
@@ -414,7 +414,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             My Profile
         </a>
-        <a href="javascript:void(0)" onclick="document.getElementById('stores-section').scrollIntoView({behavior: 'smooth'});" class="btn btn-accent">
+        <a href="{% url 'directory' %}" class="btn btn-accent">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"></polygon><line x1="9" y1="3" x2="9" y2="18"></line><line x1="15" y1="6" x2="15" y2="21"></line></svg>
             Browse Directory
         </a>
@@ -492,7 +492,7 @@
                         {% if 'Fashion' in store.category %}
                             <span class="store-badge badge-fashion">Fashion & Style</span>
                         {% elif 'Dining' in store.category %}
-                            <span class="store-badge badge-dining">Dining & CafÃ©</span>
+                            <span class="store-badge badge-dining">Dining & Café</span>
                         {% elif 'Electronics' in store.category %}
                             <span class="store-badge badge-tech">Tech & Gadgets</span>
                         {% elif 'Entertainment' in store.category %}
@@ -599,4 +599,5 @@
     }
 </script>
 {% endblock %}
+
 

@@ -531,3 +531,228 @@ class MallDirectoryCoreFeatureTests(TestCase):
             response = self.client.get(url)
             self.assertEqual(response.status_code, 302)
             self.assertTrue(response.url.startswith(reverse('login')))
+
+
+class MallDirectoryHardeningTests(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+        self.admin_a = User.objects.create_user(
+            username='hardening_admin_a',
+            email='admin_a@mallway.ph',
+            password='AdminAPass123!',
+            first_name='Alice'
+        )
+        self.admin_a.profile.role = 'admin'
+        self.admin_a.profile.save()
+
+        self.admin_b = User.objects.create_user(
+            username='hardening_admin_b',
+            email='admin_b@mallway.ph',
+            password='AdminBPass123!',
+            first_name='Bob'
+        )
+        self.admin_b.profile.role = 'admin'
+        self.admin_b.profile.save()
+
+        self.customer = User.objects.create_user(
+            username='hardening_customer',
+            email='cust_hard@mallway.ph',
+            password='CustHardPass123!',
+            first_name='Charlie'
+        )
+        self.customer.profile.role = 'customer'
+        self.customer.profile.save()
+
+        self.dest_a = Destination.objects.create(
+            name='Uniqlo Flagship',
+            category='store',
+            description='LifeWear apparel and essentials.',
+            floor='Level 1',
+            location='Unit 101, North Wing',
+            operating_hours='10:00 AM - 9:00 PM',
+            featured=True,
+            archived=False,
+            created_by=self.admin_a,
+        )
+
+    def test_create_destination_valid_with_image(self):
+        """Valid destination with image is saved atomically and linked to creator."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        img = get_temporary_image()
+        response = self.client.post(
+            reverse('destination_create'),
+            {
+                'name': 'Apple Premium Reseller',
+                'category': 'store',
+                'description': 'Authorized Apple retail experience.',
+                'floor': 'Level 2',
+                'location': 'Unit 205, Tech Zone',
+                'operating_hours': '10:00 AM - 9:00 PM',
+                'featured': True,
+                'image': img,
+            },
+            follow=True,
+        )
+        self.assertRedirects(response, reverse('admin_directory'))
+        self.assertContains(response, 'created successfully')
+        created = Destination.objects.get(name='Apple Premium Reseller')
+        self.assertEqual(created.created_by, self.admin_a)
+        self.assertTrue(bool(created.image))
+
+    def test_reject_duplicate_active_floor_location(self):
+        """Business rule: two active destinations cannot share the same floor and location."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        response = self.client.post(
+            reverse('destination_create'),
+            {
+                'name': 'Another Store',
+                'category': 'store',
+                'floor': 'level 1',
+                'location': 'unit 101, north wing',
+                'operating_hours': '10:00 AM - 9:00 PM',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Location conflict')
+        self.assertFalse(Destination.objects.filter(name='Another Store').exists())
+
+    def test_reject_short_or_whitespace_inputs(self):
+        """Server-side validation rejects whitespace-only or <2 char required fields."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        response = self.client.post(
+            reverse('destination_create'),
+            {
+                'name': 'A',
+                'category': 'store',
+                'floor': '   ',
+                'location': 'X',
+                'operating_hours': 'ab',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        form = response.context['form']
+        self.assertTrue(form.has_error('name'))
+        self.assertTrue(form.has_error('floor'))
+        self.assertTrue(form.has_error('location'))
+        self.assertTrue(form.has_error('operating_hours'))
+
+    def test_reject_invalid_destination_image_file(self):
+        """Corrupted or non-image uploads are rejected server-side."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        bad_file = SimpleUploadedFile(
+            name='malicious.jpg',
+            content=b'not-actually-an-image-bytes',
+            content_type='image/jpeg',
+        )
+        response = self.client.post(
+            reverse('destination_create'),
+            {
+                'name': 'Safe Cafe',
+                'category': 'restaurant',
+                'floor': 'Level 3',
+                'location': 'Unit 301',
+                'image': bad_file,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context['form'].has_error('image'))
+        self.assertFalse(Destination.objects.filter(name='Safe Cafe').exists())
+
+    def test_other_admin_blocked_from_editing_or_deleting_record(self):
+        """Another admin cannot view, edit, archive, delete, or toggle another admin's record."""
+        self.client.login(username='hardening_admin_b', password='AdminBPass123!')
+        for url_name in ['destination_edit', 'destination_delete', 'destination_archive']:
+            response = self.client.get(reverse(url_name, args=[self.dest_a.id]))
+            self.assertEqual(response.status_code, 403)
+            self.assertContains(response, 'Access Forbidden', status_code=403)
+
+        post_edit = self.client.post(
+            reverse('destination_edit', args=[self.dest_a.id]),
+            {'name': 'Hijacked', 'category': 'store', 'floor': 'L1', 'location': 'U1'},
+        )
+        self.assertEqual(post_edit.status_code, 403)
+
+        post_toggle = self.client.post(
+            reverse('destination_toggle_featured', args=[self.dest_a.id])
+        )
+        self.assertEqual(post_toggle.status_code, 403)
+
+        self.dest_a.refresh_from_db()
+        self.assertEqual(self.dest_a.name, 'Uniqlo Flagship')
+
+    def test_other_admin_cannot_see_other_admins_records_in_list(self):
+        """Admin directory list only shows records owned by the logged-in admin."""
+        self.client.login(username='hardening_admin_b', password='AdminBPass123!')
+        response = self.client.get(reverse('admin_directory'))
+        self.assertEqual(response.status_code, 200)
+        self.assertNotContains(response, 'Uniqlo Flagship')
+
+    def test_toggle_featured_requires_post_method(self):
+        """State-changing toggle action rejects GET requests with 405 Method Not Allowed."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        response = self.client.get(reverse('destination_toggle_featured', args=[self.dest_a.id]))
+        self.assertEqual(response.status_code, 405)
+
+    def test_invalid_destination_id_returns_404(self):
+        """Non-existent destination IDs and archived detail pages return 404 without crashing."""
+        self.client.login(username='hardening_customer', password='CustHardPass123!')
+        res_missing = self.client.get(reverse('destination_detail', args=[999999]))
+        self.assertEqual(res_missing.status_code, 404)
+
+        self.dest_a.archived = True
+        self.dest_a.save()
+        res_archived = self.client.get(reverse('destination_detail', args=[self.dest_a.id]))
+        self.assertEqual(res_archived.status_code, 404)
+
+    def test_custom_404_page_rendered_when_debug_false(self):
+        """With DEBUG=False, invalid URLs render the custom MallWay 404 template."""
+        with self.settings(DEBUG=False):
+            response = self.client.get('/accounts/nonexistent-route-xyz/')
+            self.assertEqual(response.status_code, 404)
+            self.assertContains(response, 'Destination Not Found', status_code=404)
+
+    def test_cannot_restore_archived_destination_into_occupied_unit(self):
+        """Restoring an archived destination is blocked if another active store occupies its unit."""
+        self.dest_a.archived = True
+        self.dest_a.save()
+        Destination.objects.create(
+            name='New Tenant In Unit 101',
+            category='store',
+            floor='Level 1',
+            location='Unit 101, North Wing',
+            archived=False,
+            created_by=self.admin_a,
+        )
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        response = self.client.post(
+            reverse('destination_archive', args=[self.dest_a.id]),
+            follow=True,
+        )
+        self.assertRedirects(response, reverse('admin_directory'))
+        self.assertContains(response, 'Cannot restore')
+        self.dest_a.refresh_from_db()
+        self.assertTrue(self.dest_a.archived)
+
+    def test_navbar_shows_directory_links_by_role(self):
+        """Role-specific directory links appear in top navigation and dashboards."""
+        self.client.login(username='hardening_admin_a', password='AdminAPass123!')
+        admin_res = self.client.get(reverse('admin_dashboard'))
+        self.assertContains(admin_res, 'Manage Directory')
+        self.assertContains(admin_res, reverse('admin_directory'))
+
+        self.client.logout()
+        self.client.login(username='hardening_customer', password='CustHardPass123!')
+        cust_res = self.client.get(reverse('customer_dashboard'))
+        self.assertContains(cust_res, 'Mall Directory')
+        self.assertContains(cust_res, reverse('directory'))
+
+    def test_csrf_enforced_on_post_actions(self):
+        """POST requests without a valid CSRF token are rejected with 403 Forbidden."""
+        csrf_client = Client(enforce_csrf_checks=True)
+        csrf_client.force_login(self.admin_a)
+        response = csrf_client.post(
+            reverse('destination_create'),
+            {'name': 'No CSRF Store', 'category': 'store', 'floor': 'L1', 'location': 'U999'},
+        )
+        self.assertEqual(response.status_code, 403)

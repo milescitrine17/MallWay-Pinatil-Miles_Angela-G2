@@ -1,7 +1,40 @@
-﻿from django import forms
+﻿import os
+import re
+from PIL import Image, UnidentifiedImageError
+from django import forms
+from django.db import transaction
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm
 from .models import Profile, Destination
+
+
+MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5 MB
+ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.gif', '.webp'}
+PHONE_PATTERN = re.compile(r'^[+\d\s\-()]{5,20}$')
+
+
+def validate_uploaded_image(uploaded_file):
+    """Verify uploaded image size, extension, and file contents."""
+    if not uploaded_file:
+        return uploaded_file
+
+    if uploaded_file.size > MAX_IMAGE_SIZE_BYTES:
+        raise forms.ValidationError("Image file size must not exceed 5 MB.")
+
+    ext = os.path.splitext(uploaded_file.name)[1].lower()
+    if ext not in ALLOWED_IMAGE_EXTENSIONS:
+        raise forms.ValidationError(
+            "Unsupported image format. Allowed formats: JPG, JPEG, PNG, GIF, WEBP."
+        )
+
+    try:
+        img = Image.open(uploaded_file)
+        img.verify()
+        uploaded_file.seek(0)
+    except (UnidentifiedImageError, Exception):
+        raise forms.ValidationError("The uploaded file is not a valid or readable image.")
+
+    return uploaded_file
 
 
 class RegistrationForm(UserCreationForm):
@@ -53,9 +86,7 @@ class RegistrationForm(UserCreationForm):
         required=True,
         label="Account Role",
         initial='customer',
-        widget=forms.Select(attrs={
-            'class': 'form-input'
-        }),
+        widget=forms.Select(attrs={'class': 'form-input'}),
         help_text="Select your role to access the corresponding dashboard features."
     )
 
@@ -106,6 +137,14 @@ class RegistrationForm(UserCreationForm):
             )
         return username
 
+    def clean_contact_number(self):
+        contact = self.cleaned_data.get('contact_number', '').strip()
+        if contact and not PHONE_PATTERN.match(contact):
+            raise forms.ValidationError(
+                "Enter a valid contact number (5-20 digits, spaces, +, -, or parentheses)."
+            )
+        return contact
+
     def save(self, commit=True):
         user = super().save(commit=False)
         user.first_name = self.cleaned_data['first_name'].strip()
@@ -115,11 +154,12 @@ class RegistrationForm(UserCreationForm):
         contact = self.cleaned_data.get('contact_number', '').strip()
 
         if commit:
-            user.save()
-            profile, _ = Profile.objects.get_or_create(user=user)
-            profile.role = selected_role
-            profile.contact_number = contact
-            profile.save()
+            with transaction.atomic():
+                user.save()
+                profile, _ = Profile.objects.get_or_create(user=user)
+                profile.role = selected_role
+                profile.contact_number = contact
+                profile.save()
 
         return user
 
@@ -201,22 +241,35 @@ class ProfileUpdateForm(forms.Form):
             )
         return email
 
+    def clean_contact_number(self):
+        contact = self.cleaned_data.get('contact_number', '').strip()
+        if contact and not PHONE_PATTERN.match(contact):
+            raise forms.ValidationError(
+                "Enter a valid contact number (5-20 digits, spaces, +, -, or parentheses)."
+            )
+        return contact
+
+    def clean_profile_photo(self):
+        photo = self.cleaned_data.get('profile_photo')
+        return validate_uploaded_image(photo)
+
     def save(self):
         if not self.user:
             return None
 
-        self.user.first_name = self.cleaned_data['first_name'].strip()
-        self.user.last_name = self.cleaned_data['last_name'].strip()
-        self.user.email = self.cleaned_data['email'].strip().lower()
-        self.user.save()
+        with transaction.atomic():
+            self.user.first_name = self.cleaned_data['first_name'].strip()
+            self.user.last_name = self.cleaned_data['last_name'].strip()
+            self.user.email = self.cleaned_data['email'].strip().lower()
+            self.user.save()
 
-        profile, _ = Profile.objects.get_or_create(user=self.user)
-        profile.contact_number = self.cleaned_data.get('contact_number', '').strip()
+            profile, _ = Profile.objects.get_or_create(user=self.user)
+            profile.contact_number = self.cleaned_data.get('contact_number', '').strip()
 
-        if self.cleaned_data.get('profile_photo'):
-            profile.profile_photo = self.cleaned_data['profile_photo']
+            if self.cleaned_data.get('profile_photo'):
+                profile.profile_photo = self.cleaned_data['profile_photo']
 
-        profile.save()
+            profile.save()
         return self.user
 
 
@@ -239,7 +292,7 @@ class DestinationForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'form-input', 'placeholder': 'Brief description...', 'rows': 3}),
             'floor': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Ground Floor, Level 2'}),
             'location': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. Unit 203, East Wing'}),
-            'operating_hours': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. 10:00 AM – 9:00 PM daily'}),
+            'operating_hours': forms.TextInput(attrs={'class': 'form-input', 'placeholder': 'e.g. 10:00 AM - 9:00 PM daily'}),
             'featured': forms.CheckboxInput(attrs={'class': 'form-checkbox'}),
             'image': forms.FileInput(attrs={'class': 'form-file-input', 'accept': 'image/*'}),
         }
@@ -255,19 +308,78 @@ class DestinationForm(forms.ModelForm):
         }
 
     def clean_name(self):
-        name = self.cleaned_data.get('name', '').strip()
+        name = ' '.join(self.cleaned_data.get('name', '').split())
         if not name:
             raise forms.ValidationError("Destination name is required.")
+        if len(name) < 2:
+            raise forms.ValidationError("Destination name must be at least 2 characters long.")
         return name
 
     def clean_floor(self):
-        floor = self.cleaned_data.get('floor', '').strip()
+        floor = ' '.join(self.cleaned_data.get('floor', '').split())
         if not floor:
             raise forms.ValidationError("Floor information is required.")
+        if len(floor) < 2:
+            raise forms.ValidationError("Floor must be at least 2 characters long.")
         return floor
 
     def clean_location(self):
-        location = self.cleaned_data.get('location', '').strip()
+        location = ' '.join(self.cleaned_data.get('location', '').split())
         if not location:
             raise forms.ValidationError("Location / Unit is required.")
+        if len(location) < 2:
+            raise forms.ValidationError("Location / Unit must be at least 2 characters long.")
         return location
+
+    def clean_operating_hours(self):
+        hours = ' '.join(self.cleaned_data.get('operating_hours', '').split())
+        if hours and len(hours) < 3:
+            raise forms.ValidationError("Operating hours must be at least 3 characters if specified.")
+        return hours
+
+    def clean_description(self):
+        return self.cleaned_data.get('description', '').strip()
+
+    def clean_image(self):
+        image = self.cleaned_data.get('image')
+        # Only validate newly uploaded files (not existing FieldFile references)
+        if image and hasattr(image, 'file') and hasattr(image, 'content_type'):
+            return validate_uploaded_image(image)
+        return image
+
+    def clean(self):
+        cleaned_data = super().clean()
+        name = cleaned_data.get('name')
+        floor = cleaned_data.get('floor')
+        location = cleaned_data.get('location')
+
+        if floor and location:
+            # Business rule: no two active destinations can occupy the exact same floor & unit/location
+            unit_conflict = Destination.objects.filter(
+                floor__iexact=floor,
+                location__iexact=location,
+                archived=False,
+            )
+            if self.instance and self.instance.pk:
+                unit_conflict = unit_conflict.exclude(pk=self.instance.pk)
+            if unit_conflict.exists():
+                existing = unit_conflict.first()
+                raise forms.ValidationError(
+                    f'Location conflict: "{existing.name}" already occupies {floor} ({location}). '
+                    f'Please assign a different unit/location or archive the existing entry first.'
+                )
+
+        if name and floor and location:
+            exact_dup = Destination.objects.filter(
+                name__iexact=name,
+                floor__iexact=floor,
+                location__iexact=location,
+            )
+            if self.instance and self.instance.pk:
+                exact_dup = exact_dup.exclude(pk=self.instance.pk)
+            if exact_dup.exists():
+                raise forms.ValidationError(
+                    f'A destination named "{name}" at {floor} ({location}) already exists.'
+                )
+
+        return cleaned_data

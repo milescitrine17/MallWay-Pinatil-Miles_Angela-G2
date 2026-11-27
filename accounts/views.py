@@ -4,7 +4,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError, transaction
 from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 from .models import Profile, Destination
 from .forms import RegistrationForm, ProfileUpdateForm, DestinationForm
@@ -15,6 +18,22 @@ def get_user_profile(user):
     default_role = 'admin' if (user.is_superuser or user.is_staff) else 'customer'
     profile, _ = Profile.objects.get_or_create(user=user, defaults={'role': default_role})
     return profile
+
+
+def _get_owned_destination_or_403(request, destination_id):
+    """
+    Fetch destination via get_object_or_404 and verify ownership.
+    Superusers can manage all records; regular admins may only manage records they created.
+    """
+    destination = get_object_or_404(
+        Destination.objects.select_related('created_by'),
+        id=destination_id,
+    )
+    if not request.user.is_superuser and destination.created_by != request.user:
+        raise PermissionDenied(
+            "You do not have permission to view or modify another administrator's destination record."
+        )
+    return destination
 
 
 def register_view(request):
@@ -121,7 +140,9 @@ def customer_dashboard(request):
         )
         return redirect('admin_dashboard')
 
-    featured = Destination.objects.filter(archived=False, featured=True)[:6]
+    featured = Destination.objects.select_related('created_by').filter(
+        archived=False, featured=True
+    )[:6]
     total_active = Destination.objects.filter(archived=False).count()
 
     featured_stores = [
@@ -172,14 +193,15 @@ def admin_dashboard(request):
         )
         return redirect('customer_dashboard')
 
-    total_destinations = Destination.objects.filter(archived=False).count()
-    featured_count = Destination.objects.filter(archived=False, featured=True).count()
-    archived_count = Destination.objects.filter(archived=True).count()
+    scoped_qs = Destination.objects.all() if request.user.is_superuser else Destination.objects.filter(created_by=request.user)
+    total_destinations = scoped_qs.filter(archived=False).count()
+    featured_count = scoped_qs.filter(archived=False, featured=True).count()
+    archived_count = scoped_qs.filter(archived=True).count()
     registered_users_count = User.objects.count()
 
     kpi_stats = {
-        'total_stores': total_destinations or 52,
-        'occupancy_rate': f"{featured_count} Featured" if featured_count else '92.3%',
+        'total_stores': total_destinations,
+        'occupancy_rate': f"{featured_count} Featured",
         'daily_visitors': '4,850',
         'registered_accounts': registered_users_count,
     }
@@ -248,11 +270,14 @@ def profile_edit_view(request):
 
 @login_required(login_url='login')
 def directory_view(request):
-    """Customer: browse, search, and filter destinations."""
-    if request.user.profile.role != 'customer':
+    """Customer: browse, search, and filter active destinations."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'customer':
+        messages.error(request, "Access Denied: Switch to a Customer account to use the shopper directory.")
         return redirect('dashboard')
 
-    destinations = Destination.objects.filter(archived=False)
+    base_qs = Destination.objects.select_related('created_by').filter(archived=False)
+    destinations = base_qs
 
     search_query = request.GET.get('search', '').strip()
     category = request.GET.get('category', '').strip()
@@ -262,13 +287,15 @@ def directory_view(request):
         destinations = destinations.filter(name__icontains=search_query)
 
     if category:
-        destinations = destinations.filter(category=category)
+        valid_categories = {c[0] for c in Destination.CATEGORY_CHOICES}
+        if category in valid_categories:
+            destinations = destinations.filter(category=category)
 
     if floor_filter:
         destinations = destinations.filter(floor__icontains=floor_filter)
 
-    featured = Destination.objects.filter(archived=False, featured=True)
-    floors = Destination.objects.filter(archived=False).values_list('floor', flat=True).distinct().order_by('floor')
+    featured = base_qs.filter(featured=True)
+    floors = base_qs.values_list('floor', flat=True).distinct().order_by('floor')
 
     return render(
         request,
@@ -289,10 +316,16 @@ def directory_view(request):
 @login_required(login_url='login')
 def destination_detail_view(request, destination_id):
     """Customer: view full details of an active destination."""
-    if request.user.profile.role != 'customer':
+    profile = get_user_profile(request.user)
+    if profile.role != 'customer':
+        messages.error(request, "Access Denied: Switch to a Customer account to view shopper destination details.")
         return redirect('dashboard')
 
-    destination = get_object_or_404(Destination, id=destination_id, archived=False)
+    destination = get_object_or_404(
+        Destination.objects.select_related('created_by'),
+        id=destination_id,
+        archived=False,
+    )
 
     return render(
         request,
@@ -307,12 +340,17 @@ def destination_detail_view(request, destination_id):
 
 @login_required(login_url='login')
 def admin_directory_view(request):
-    """Admin: list all destinations with search/filter and management actions."""
-    if request.user.profile.role != 'admin':
+    """Admin: list owned destinations (or all for superuser) with search/filter."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
-    destinations = Destination.objects.all()
+    base_qs = Destination.objects.select_related('created_by')
+    if not request.user.is_superuser:
+        base_qs = base_qs.filter(created_by=request.user)
+
+    destinations = base_qs
 
     search_query = request.GET.get('search', '').strip()
     category = request.GET.get('category', '').strip()
@@ -322,7 +360,9 @@ def admin_directory_view(request):
         destinations = destinations.filter(name__icontains=search_query)
 
     if category:
-        destinations = destinations.filter(category=category)
+        valid_categories = {c[0] for c in Destination.CATEGORY_CHOICES}
+        if category in valid_categories:
+            destinations = destinations.filter(category=category)
 
     if status_filter == 'active':
         destinations = destinations.filter(archived=False)
@@ -331,10 +371,10 @@ def admin_directory_view(request):
     elif status_filter == 'featured':
         destinations = destinations.filter(featured=True, archived=False)
 
-    total = Destination.objects.count()
-    active_count = Destination.objects.filter(archived=False).count()
-    archived_count = Destination.objects.filter(archived=True).count()
-    featured_count = Destination.objects.filter(featured=True, archived=False).count()
+    total = base_qs.count()
+    active_count = base_qs.filter(archived=False).count()
+    archived_count = base_qs.filter(archived=True).count()
+    featured_count = base_qs.filter(featured=True, archived=False).count()
 
     return render(
         request,
@@ -355,8 +395,9 @@ def admin_directory_view(request):
 
 @login_required(login_url='login')
 def destination_create_view(request):
-    """Admin: create a new destination."""
-    if request.user.profile.role != 'admin':
+    """Admin: create a new destination with atomic persistence and validation."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
@@ -364,15 +405,21 @@ def destination_create_view(request):
         form = DestinationForm(request.POST, request.FILES)
 
         if form.is_valid():
-            destination = form.save(commit=False)
-            destination.created_by = request.user
-            destination.save()
-
-            messages.success(
-                request,
-                f'Destination "{destination.name}" has been created successfully!'
-            )
-            return redirect('admin_directory')
+            try:
+                with transaction.atomic():
+                    destination = form.save(commit=False)
+                    destination.created_by = request.user
+                    destination.save()
+                messages.success(
+                    request,
+                    f'Destination "{destination.name}" has been created successfully!'
+                )
+                return redirect('admin_directory')
+            except IntegrityError:
+                messages.error(
+                    request,
+                    'A destination with that exact name, floor, and location already exists.'
+                )
         else:
             messages.error(request, "Please check the form and correct the errors below.")
     else:
@@ -392,24 +439,31 @@ def destination_create_view(request):
 
 @login_required(login_url='login')
 def destination_edit_view(request, destination_id):
-    """Admin: edit an existing destination."""
-    if request.user.profile.role != 'admin':
+    """Admin: edit an owned destination."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
-    destination = get_object_or_404(Destination, id=destination_id)
+    destination = _get_owned_destination_or_403(request, destination_id)
 
     if request.method == 'POST':
         form = DestinationForm(request.POST, request.FILES, instance=destination)
 
         if form.is_valid():
-            form.save()
-
-            messages.success(
-                request,
-                f'Destination "{destination.name}" has been updated successfully!'
-            )
-            return redirect('admin_directory')
+            try:
+                with transaction.atomic():
+                    form.save()
+                messages.success(
+                    request,
+                    f'Destination "{destination.name}" has been updated successfully!'
+                )
+                return redirect('admin_directory')
+            except IntegrityError:
+                messages.error(
+                    request,
+                    'Update failed because another destination already uses that name, floor, and location.'
+                )
         else:
             messages.error(request, "Please check the form and correct the errors below.")
     else:
@@ -430,16 +484,18 @@ def destination_edit_view(request, destination_id):
 
 @login_required(login_url='login')
 def destination_delete_view(request, destination_id):
-    """Admin: permanently delete a destination."""
-    if request.user.profile.role != 'admin':
+    """Admin: permanently delete an owned destination (GET shows confirmation, POST deletes)."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
-    destination = get_object_or_404(Destination, id=destination_id)
+    destination = _get_owned_destination_or_403(request, destination_id)
 
     if request.method == 'POST':
-        name = destination.name
-        destination.delete()
+        with transaction.atomic():
+            name = destination.name
+            destination.delete()
 
         messages.success(
             request,
@@ -458,16 +514,32 @@ def destination_delete_view(request, destination_id):
 
 @login_required(login_url='login')
 def destination_archive_view(request, destination_id):
-    """Admin: archive (soft-delete) or restore a destination."""
-    if request.user.profile.role != 'admin':
+    """Admin: archive (soft-delete) or restore an owned destination."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
-    destination = get_object_or_404(Destination, id=destination_id)
+    destination = _get_owned_destination_or_403(request, destination_id)
 
     if request.method == 'POST':
-        destination.archived = not destination.archived
-        destination.save()
+        # Business rule: prevent restoring if another active destination now occupies the same floor & location
+        if destination.archived:
+            conflict = Destination.objects.filter(
+                floor__iexact=destination.floor,
+                location__iexact=destination.location,
+                archived=False,
+            ).exclude(pk=destination.pk).first()
+            if conflict:
+                messages.error(
+                    request,
+                    f'Cannot restore "{destination.name}": "{conflict.name}" currently occupies {destination.floor} ({destination.location}).'
+                )
+                return redirect('admin_directory')
+
+        with transaction.atomic():
+            destination.archived = not destination.archived
+            destination.save()
 
         if destination.archived:
             messages.success(request, f'Destination "{destination.name}" has been archived.')
@@ -486,24 +558,37 @@ def destination_archive_view(request, destination_id):
 
 
 @login_required(login_url='login')
+@require_POST
 def destination_toggle_featured_view(request, destination_id):
-    """Admin: toggle featured status of a destination."""
-    if request.user.profile.role != 'admin':
+    """Admin: toggle featured status of an owned destination (POST only)."""
+    profile = get_user_profile(request.user)
+    if profile.role != 'admin':
         messages.error(request, 'Access Denied: Mall Administrator privileges required.')
         return redirect('dashboard')
 
-    destination = get_object_or_404(Destination, id=destination_id)
+    destination = _get_owned_destination_or_403(request, destination_id)
 
-    if request.method == 'POST':
+    with transaction.atomic():
         destination.featured = not destination.featured
         destination.save()
 
-        if destination.featured:
-            messages.success(request, f'Destination "{destination.name}" is now featured.')
-        else:
-            messages.success(request, f'Destination "{destination.name}" is no longer featured.')
-
-        return redirect('admin_directory')
+    if destination.featured:
+        messages.success(request, f'Destination "{destination.name}" is now featured.')
+    else:
+        messages.success(request, f'Destination "{destination.name}" is no longer featured.')
 
     return redirect('admin_directory')
 
+
+# ─── Custom Error Views ──────────────────────────────────────────────────────
+
+def custom_404_view(request, exception=None):
+    return render(request, '404.html', status=404)
+
+
+def custom_403_view(request, exception=None):
+    return render(request, '403.html', {'error_message': str(exception) if exception else ''}, status=403)
+
+
+def custom_500_view(request):
+    return render(request, '500.html', status=500)

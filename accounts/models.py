@@ -1,5 +1,6 @@
 ﻿from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import MinLengthValidator
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
@@ -56,14 +57,23 @@ class Destination(models.Model):
         ('other', 'Other'),
     )
 
-    name = models.CharField(max_length=150)
+    name = models.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2, message="Destination name must be at least 2 characters.")]
+    )
     category = models.CharField(
         max_length=20,
         choices=CATEGORY_CHOICES
     )
     description = models.TextField(blank=True)
-    floor = models.CharField(max_length=50)
-    location = models.CharField(max_length=150)
+    floor = models.CharField(
+        max_length=50,
+        validators=[MinLengthValidator(2, message="Floor must be at least 2 characters.")]
+    )
+    location = models.CharField(
+        max_length=150,
+        validators=[MinLengthValidator(2, message="Location / Unit must be at least 2 characters.")]
+    )
     operating_hours = models.CharField(max_length=100, blank=True)
     featured = models.BooleanField(default=False)
     archived = models.BooleanField(default=False)
@@ -84,6 +94,15 @@ class Destination(models.Model):
 
     class Meta:
         ordering = ['name']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'floor', 'location'],
+                name='unique_destination_name_floor_location'
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['archived', 'featured'], name='dest_archived_featured_idx'),
+        ]
 
     def __str__(self):
         return self.name
